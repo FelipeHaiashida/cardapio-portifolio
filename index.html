@@ -711,7 +711,7 @@ function loadMenu() {
           categoria: (row.categoria || 'Outros').trim(),
           nome: row.nome.trim(),
           descricao: (row.descricao || '').trim(),
-          preco: parseFloat(String(row.preco).replace(',', '.')) || 0,
+          preco: parsePrice(row.preco),
           foto_url: (row.foto_url || '').trim(),
           disponivel: (row.disponivel || 'sim').trim().toLowerCase() !== 'nao',
         }));
@@ -929,6 +929,22 @@ function setupScrollSpy() {
    ============================================================ */
 function formatPrice(n) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/**
+ * Aceita qualquer formato comum: 38, "38", "38.00", "38,00",
+ * "R$ 38,00", "R$ 1.234,56", " 45 ", etc.
+ */
+function parsePrice(raw) {
+  if (raw == null) return 0;
+  const clean = String(raw).replace(/[^\d,.\-]/g, ''); // só dígitos, vírgula, ponto, menos
+  if (!clean) return 0;
+  // Se tem vírgula, é formato BR: ponto = milhar, vírgula = decimal
+  const normalized = clean.includes(',')
+    ? clean.replace(/\./g, '').replace(',', '.')
+    : clean;
+  const n = parseFloat(normalized);
+  return isNaN(n) ? 0 : n;
 }
 
 function slug(s) {
