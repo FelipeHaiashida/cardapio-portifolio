@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sabores do Ceará — Cardápio</title>
+<meta name="description" content="Cardápio digital — cozinha cearense autêntica em Fortaleza.">
+<meta name="theme-color" content="#FAF4EA">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* ============================================================
+     CONFIG VISUAL — paleta e tokens
+     ============================================================ */
+  :root {
+    --cream: #FAF4EA;
+    --cream-deep: #F1E8D5;
+    --ink: #1F1410;
+    --ink-soft: #4A3830;
+    --ink-mute: #8A7468;
+    --terracotta: #B84A2E;
+    --terracotta-dark: #8B3520;
+    --moss: #4F6849;
+    --gold: #C99845;
+    --line: #E5DAC4;
+    --shadow: 0 1px 2px rgba(31,20,16,.05), 0 8px 24px rgba(31,20,16,.06);
+    --shadow-lg: 0 4px 12px rgba(31,20,16,.08), 0 20px 60px rgba(31,20,16,.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 120px;
+    min-height: 100vh;
+  }
+
+  /* Subtle paper texture on background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 25% 20%, rgba(184,74,46,.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(79,104,73,.04) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ============================================================
+     HEADER / HERO
+     ============================================================ */
+  .hero {
+    position: relative;
+    padding: 56px 24px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    z-index: 1;
+  }
+
+  .hero__ornament {
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: rise .8s .1s ease-out forwards;
+  }
+
+  .hero__ornament::before,
+  .hero__ornament::after {
+    content: '';
+    display: inline-block;
+    width: 22px;
+    height: 1px;
+    background: var(--terracotta);
+    vertical-align: middle;
+    margin: 0 12px;
+  }
+
+  .hero__title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'SOFT' 80, 'WONK' 1, 'opsz' 144;
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(44px, 11vw, 76px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 14px;
+    opacity: 0;
+    animation: rise .9s .25s ease-out forwards;
+  }
+
+  .hero__subtitle {
+    font-size: 14px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+    opacity: 0;
+    animation: rise .9s .4s ease-out forwards;
+  }
+
+  .hero__subtitle span {
+    color: var(--gold);
+    margin: 0 8px;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============================================================
+     CATEGORY NAV (sticky)
+     ============================================================ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(250, 244, 234, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 0;
+  }
+
+  .nav__inner {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 24px;
+    scrollbar-width: none;
+  }
+  .nav__inner::-webkit-scrollbar { display: none; }
+
+  .nav__btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .25s ease;
+    white-space: nowrap;
+  }
+
+  .nav__btn:hover {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+  }
+
+  .nav__btn.is-active {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+  }
+
+  /* ============================================================
+     MENU
+     ============================================================ */
+  .menu {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .section {
+    margin-bottom: 48px;
+    scroll-margin-top: 80px;
+  }
+
+  .section__title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'SOFT' 50, 'opsz' 96;
+    font-weight: 500;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .section__count {
+    font-size: 12px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  /* ============================================================
+     ITEM CARD
+     ============================================================ */
+  .item {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    transition: opacity .3s ease;
+  }
+
+  .item:last-child { border-bottom: none; }
+
+  .item.is-unavailable {
+    opacity: 0.45;
+  }
+
+  .item__photo {
+    width: 92px;
+    height: 92px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--cream-deep);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .item__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .item.is-unavailable .item__photo img {
+    filter: grayscale(1);
+  }
+
+  .item__badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: var(--ink);
+    color: var(--cream);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 4px;
+  }
+
+  .item__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .item__name {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'SOFT' 30, 'opsz' 48;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.005em;
+  }
+
+  .item__desc {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+  }
+
+  .item__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+  }
+
+  .item__price {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 48;
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--terracotta);
+    letter-spacing: -0.01em;
+  }
+
+  /* Add button + qty controls */
+  .item__add {
+    background: var(--ink);
+    color: var(--cream);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s ease;
+    flex-shrink: 0;
+  }
+
+  .item__add:hover {
+    background: var(--terracotta);
+    transform: scale(1.08);
+  }
+
+  .item__qty {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--ink);
+    border-radius: 999px;
+    padding: 3px;
+  }
+
+  .item__qty button {
+    background: transparent;
+    border: none;
+    color: var(--cream);
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s;
+  }
+
+  .item__qty button:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .item__qty span {
+    color: var(--cream);
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* ============================================================
+     CART (sticky bottom)
+     ============================================================ */
+  .cart {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: 688px;
+    margin: 0 auto;
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+    transform: translateY(140%);
+    transition: transform .4s cubic-bezier(.2,.9,.3,1.1);
+    overflow: hidden;
+  }
+
+  .cart.is-visible {
+    transform: translateY(0);
+  }
+
+  .cart__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .cart__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cart__count {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(250, 244, 234, 0.6);
+  }
+
+  .cart__total {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .cart__chevron {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .3s ease;
+  }
+
+  .cart.is-open .cart__chevron {
+    transform: rotate(180deg);
+  }
+
+  .cart__chevron::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--cream);
+    border-bottom: 2px solid var(--cream);
+    transform: rotate(-135deg);
+    margin-top: 4px;
+  }
+
+  .cart__drawer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .4s ease;
+  }
+
+  .cart.is-open .cart__drawer {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .cart__items {
+    padding: 0 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cart__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .cart__item-name {
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cart__item-price {
+    font-size: 13px;
+    color: rgba(250, 244, 234, 0.6);
+    white-space: nowrap;
+  }
+
+  .cart__item-qty {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cart__item-qty button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: var(--cream);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cart__item-qty span {
+    font-size: 13px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .cart__checkout {
+    width: 100%;
+    background: var(--terracotta);
+    color: var(--cream);
+    border: none;
+    padding: 16px 20px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background .2s ease;
+  }
+
+  .cart__checkout:hover {
+    background: var(--terracotta-dark);
+  }
+
+  .cart__checkout svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ============================================================
+     LOADING / ERROR STATES
+     ============================================================ */
+  .state {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--ink-mute);
+  }
+
+  .state__title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .state__msg {
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--line);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+    margin: 0 auto 18px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (min-width: 640px) {
+    .item {
+      grid-template-columns: 120px 1fr;
+      gap: 20px;
+      padding: 20px 0;
+    }
+    .item__photo { width: 120px; height: 120px; }
+    .item__name { font-size: 19px; }
+    .item__desc { font-size: 14px; }
+    .item__price { font-size: 19px; }
+  }
+
+  @media (min-width: 768px) {
+    .hero { padding: 80px 24px 56px; }
+    .menu { padding: 48px 24px; }
+    .section { margin-bottom: 64px; }
+    .section__title { font-size: 36px; }
+  }
+
+  /* ============================================================
+     ITEM ENTRANCE ANIMATION
+     ============================================================ */
+  .item {
+    opacity: 0;
+    animation: itemIn .5s ease-out forwards;
+  }
+
+  @keyframes itemIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="hero">
+  <div class="hero__ornament">Cozinha de raiz</div>
+  <h1 class="hero__title">Sabores do Ceará</h1>
+  <p class="hero__subtitle">
+    Praia de Iracema <span>•</span> Aberto hoje até 23h
+  </p>
+</header>
+
+<!-- ============================================================
+     CATEGORY NAV
+     ============================================================ -->
+<nav class="nav" id="nav" style="display:none;">
+  <div class="nav__inner" id="navInner"></div>
+</nav>
+
+<!-- ============================================================
+     MENU CONTAINER
+     ============================================================ -->
+<main class="menu" id="menu">
+  <div class="state" id="loading">
+    <div class="spinner"></div>
+    <div class="state__msg">Carregando cardápio…</div>
+  </div>
+</main>
+
+<!-- ============================================================
+     CART
+     ============================================================ -->
+<aside class="cart" id="cart">
+  <div class="cart__bar" id="cartBar">
+    <div class="cart__info">
+      <span class="cart__count" id="cartCount">0 itens</span>
+      <span class="cart__total" id="cartTotal">R$ 0,00</span>
+    </div>
+    <div class="cart__chevron"></div>
+  </div>
+  <div class="cart__drawer">
+    <div class="cart__items" id="cartItems"></div>
+    <button class="cart__checkout" id="checkout">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Pedir pelo WhatsApp
+    </button>
+  </div>
+</aside>
+
+<footer class="footer">
+  Cardápio digital • Sabores do Ceará
+</footer>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — basta alterar isso pra clonar para outro restaurante
+   ============================================================ */
+const CONFIG = {
+  csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHV6OMg7TBETu_lp0hYm9_GJ9Io9u-IK09Z6GIJROD6NIJWnJ2bQMDqhbVwjUpeA/pub?gid=356144565&single=true&output=csv',
+  whatsapp: '5585999999999', // formato: 55 + DDD + número
+  restaurantName: 'Sabores do Ceará',
+};
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const state = {
+  items: [],
+  cart: new Map(), // key: nome, value: { item, qty }
+  categories: [],
+};
+
+/* ============================================================
+   FETCH + PARSE CSV
+   ============================================================ */
+function loadMenu() {
+  // cache buster pra forçar atualização (evita o cache agressivo do Google)
+  const url = CONFIG.csvUrl + '&_cb=' + Math.floor(Date.now() / 60000); // muda a cada minuto
+
+  Papa.parse(url, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      if (!results.data || results.data.length === 0) {
+        return showError('Cardápio vazio.');
+      }
+      state.items = results.data
+        .filter(row => row.nome && row.nome.trim())
+        .map(row => ({
+          categoria: (row.categoria || 'Outros').trim(),
+          nome: row.nome.trim(),
+          descricao: (row.descricao || '').trim(),
+          preco: parseFloat(String(row.preco).replace(',', '.')) || 0,
+          foto_url: (row.foto_url || '').trim(),
+          disponivel: (row.disponivel || 'sim').trim().toLowerCase() !== 'nao',
+        }));
+      render();
+    },
+    error: () => showError('Não conseguimos carregar o cardápio. Tente novamente em instantes.'),
+  });
+}
+
+function showError(msg) {
+  document.getElementById('menu').innerHTML = `
+    <div class="state">
+      <div class="state__title">Ops…</div>
+      <div class="state__msg">${msg}</div>
+    </div>`;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const menu = document.getElementById('menu');
+  const navInner = document.getElementById('navInner');
+
+  // Agrupa por categoria preservando ordem de aparição
+  const groups = new Map();
+  for (const item of state.items) {
+    if (!groups.has(item.categoria)) groups.set(item.categoria, []);
+    groups.get(item.categoria).push(item);
+  }
+  state.categories = [...groups.keys()];
+
+  // Nav
+  navInner.innerHTML = '';
+  state.categories.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'nav__btn' + (i === 0 ? ' is-active' : '');
+    btn.textContent = cat;
+    btn.dataset.target = slug(cat);
+    btn.onclick = () => {
+      document.getElementById(slug(cat)).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    navInner.appendChild(btn);
+  });
+  document.getElementById('nav').style.display = 'block';
+
+  // Sections
+  menu.innerHTML = '';
+  let delay = 0;
+  for (const [cat, items] of groups) {
+    const section = document.createElement('section');
+    section.className = 'section';
+    section.id = slug(cat);
+    section.innerHTML = `
+      <h2 class="section__title">${cat}</h2>
+      <div class="section__count">${items.length} ${items.length === 1 ? 'item' : 'itens'}</div>
+    `;
+    items.forEach(item => {
+      const card = renderItem(item, delay);
+      section.appendChild(card);
+      delay += 50;
+    });
+    menu.appendChild(section);
+  }
+
+  setupScrollSpy();
+}
+
+function renderItem(item, delay) {
+  const div = document.createElement('article');
+  div.className = 'item' + (item.disponivel ? '' : ' is-unavailable');
+  div.style.animationDelay = `${delay}ms`;
+
+  const photo = item.foto_url
+    ? `<img src="${item.foto_url}" alt="${item.nome}" loading="lazy" onerror="this.style.display='none'">`
+    : '';
+  const badge = item.disponivel ? '' : '<span class="item__badge">Esgotado</span>';
+
+  div.innerHTML = `
+    <div class="item__photo">${photo}${badge}</div>
+    <div class="item__body">
+      <div>
+        <h3 class="item__name">${item.nome}</h3>
+        ${item.descricao ? `<p class="item__desc">${item.descricao}</p>` : ''}
+      </div>
+      <div class="item__footer">
+        <span class="item__price">${formatPrice(item.preco)}</span>
+        <div class="item__action" data-action></div>
+      </div>
+    </div>
+  `;
+  updateItemAction(div, item);
+  return div;
+}
+
+function updateItemAction(itemEl, item) {
+  const slot = itemEl.querySelector('[data-action]');
+  if (!item.disponivel) { slot.innerHTML = ''; return; }
+
+  const inCart = state.cart.get(item.nome);
+  if (inCart && inCart.qty > 0) {
+    slot.innerHTML = `
+      <div class="item__qty">
+        <button data-dec>−</button>
+        <span>${inCart.qty}</span>
+        <button data-inc>+</button>
+      </div>`;
+    slot.querySelector('[data-dec]').onclick = () => changeQty(item, -1);
+    slot.querySelector('[data-inc]').onclick = () => changeQty(item, +1);
+  } else {
+    slot.innerHTML = `<button class="item__add" aria-label="Adicionar">+</button>`;
+    slot.querySelector('button').onclick = () => changeQty(item, +1);
+  }
+}
+
+/* ============================================================
+   CARRINHO
+   ============================================================ */
+function changeQty(item, delta) {
+  const current = state.cart.get(item.nome);
+  const newQty = (current?.qty || 0) + delta;
+  if (newQty <= 0) state.cart.delete(item.nome);
+  else state.cart.set(item.nome, { item, qty: newQty });
+
+  // re-render só o card afetado
+  document.querySelectorAll('.item').forEach(el => {
+    if (el.querySelector('.item__name')?.textContent === item.nome) {
+      updateItemAction(el, item);
+    }
+  });
+
+  renderCart();
+}
+
+function renderCart() {
+  const cart = document.getElementById('cart');
+  const totalEl = document.getElementById('cartTotal');
+  const countEl = document.getElementById('cartCount');
+  const itemsEl = document.getElementById('cartItems');
+
+  let totalQty = 0, totalPrice = 0;
+  for (const { item, qty } of state.cart.values()) {
+    totalQty += qty;
+    totalPrice += item.preco * qty;
+  }
+
+  if (totalQty === 0) {
+    cart.classList.remove('is-visible', 'is-open');
+    return;
+  }
+
+  cart.classList.add('is-visible');
+  countEl.textContent = `${totalQty} ${totalQty === 1 ? 'item' : 'itens'}`;
+  totalEl.textContent = formatPrice(totalPrice);
+
+  itemsEl.innerHTML = '';
+  for (const { item, qty } of state.cart.values()) {
+    const row = document.createElement('div');
+    row.className = 'cart__item';
+    row.innerHTML = `
+      <span class="cart__item-name">${item.nome}</span>
+      <span class="cart__item-price">${formatPrice(item.preco * qty)}</span>
+      <div class="cart__item-qty">
+        <button data-dec>−</button>
+        <span>${qty}</span>
+        <button data-inc>+</button>
+      </div>
+    `;
+    row.querySelector('[data-dec]').onclick = (e) => { e.stopPropagation(); changeQty(item, -1); };
+    row.querySelector('[data-inc]').onclick = (e) => { e.stopPropagation(); changeQty(item, +1); };
+    itemsEl.appendChild(row);
+  }
+}
+
+document.getElementById('cartBar').onclick = () => {
+  document.getElementById('cart').classList.toggle('is-open');
+};
+
+document.getElementById('checkout').onclick = (e) => {
+  e.stopPropagation();
+  if (state.cart.size === 0) return;
+
+  let msg = `*Olá! Pedido de ${CONFIG.restaurantName}:*\n\n`;
+  let total = 0;
+  for (const { item, qty } of state.cart.values()) {
+    msg += `• ${qty}x ${item.nome} — ${formatPrice(item.preco * qty)}\n`;
+    total += item.preco * qty;
+  }
+  msg += `\n*Total: ${formatPrice(total)}*`;
+
+  const url = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+};
+
+/* ============================================================
+   SCROLL SPY (atualiza nav ativo conforme scroll)
+   ============================================================ */
+function setupScrollSpy() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        document.querySelectorAll('.nav__btn').forEach(btn => {
+          btn.classList.toggle('is-active', btn.dataset.target === id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function formatPrice(n) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function slug(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadMenu();
+</script>
+</body>
+</html>
